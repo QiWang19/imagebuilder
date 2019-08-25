@@ -415,6 +415,10 @@ func archiveOptionsFor(infos []CopyInfo, dst string, excludes []string, check Di
 		dstIsDir = isDir
 	}
 
+	if len(infos) > 1 && !dstIsDir {
+		return nil, fmt.Errorf("When using COPY with more than one source file, the destination must be an existing directory")
+	}
+
 	options := &archive.TarOptions{
 		ChownOpts: &idtools.IDPair{UID: 0, GID: 0},
 	}
@@ -442,11 +446,6 @@ func archiveOptionsFor(infos []CopyInfo, dst string, excludes []string, check Di
 
 		klog.V(6).Infof("len=%d info.FromDir=%t info.IsDir=%t dstIsRoot=%t dstIsDir=%t srcIsDir=%t", len(infos), info.FromDir, info.IsDir(), dstIsRoot, dstIsDir, srcIsDir)
 		switch {
-		case len(infos) > 1 && dstIsRoot:
-			// copying multiple things into root, no rename necessary ([Dockerfile, dir] -> [Dockerfile, dir])
-		case len(infos) > 1:
-			// put each input into the target, which is assumed to be a directory ([Dockerfile, dir] -> [a/Dockerfile, a/dir])
-			options.RebaseNames[infoPath] = path.Join(dst, path.Base(infoPath))
 		case info.FileInfo.IsDir():
 			// mapping a directory to a destination, explicit or not ([dir] -> [a])
 			options.RebaseNames[infoPath] = dst
