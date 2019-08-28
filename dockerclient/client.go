@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -17,11 +18,10 @@ import (
 
 	dockertypes "github.com/docker/docker/api/types"
 	docker "github.com/fsouza/go-dockerclient"
-	"k8s.io/klog"
-
 	"github.com/openshift/imagebuilder"
 	"github.com/openshift/imagebuilder/dockerfile/parser"
 	"github.com/openshift/imagebuilder/imageprogress"
+	"k8s.io/klog"
 )
 
 // NewClientFromEnv is exposed to simplify getting a client when vendoring this library.
@@ -917,7 +917,9 @@ func (e *ClientExecutor) Archive(fromFS bool, src, dst string, allowDownload boo
 		klog.V(5).Infof("Archiving %s %s -> %s from context archive", e.ContextArchive, src, dst)
 		return archiveFromFile(e.ContextArchive, src, dst, excludes, check)
 	}
+	log.Println("exe~~~~~~~~~")
 	// if the context is a directory, we only allow relative includes
+	log.Println("ar src~~~~", src, "dst~~~~~~", dst, "edir~~~~", e.Directory)
 	klog.V(5).Infof("Archiving %q %q -> %q from disk", e.Directory, src, dst)
 	return archiveFromDisk(e.Directory, src, dst, allowDownload, excludes, check)
 }

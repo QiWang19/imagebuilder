@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -21,7 +22,7 @@ type CopyInfo struct {
 
 // CalcCopyInfo identifies the source files selected by a Dockerfile ADD or COPY instruction.
 func CalcCopyInfo(origPath, rootPath string, allowWildcards bool) ([]CopyInfo, error) {
-	explicitDir := origPath == "." || origPath == "/" || strings.HasSuffix(origPath, "/.") || strings.HasSuffix(origPath, "/")
+	explicitDir := origPath == "." || origPath == "/" || strings.HasSuffix(origPath, "/.")
 	// all CopyInfo resulting from this call will have FromDir set to explicitDir
 	infos, err := calcCopyInfo(origPath, rootPath, allowWildcards, explicitDir)
 	if err != nil {
@@ -31,7 +32,11 @@ func CalcCopyInfo(origPath, rootPath string, allowWildcards bool) ([]CopyInfo, e
 }
 
 func calcCopyInfo(origPath, rootPath string, allowWildcards, explicitDir bool) ([]CopyInfo, error) {
+	log.Println("rootpath~!~~~~~~~", rootPath)
 	origPath = trimLeadingPath(origPath)
+
+	log.Println("originpath~!~~~~~~~", origPath)
+
 	// Deal with wildcards
 	if allowWildcards && containsWildcards(origPath) {
 		matchPath := filepath.Join(rootPath, origPath)

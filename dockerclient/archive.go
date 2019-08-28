@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -155,12 +156,26 @@ func archiveFromURL(src, dst, tempDir string, check DirectoryCheck) (io.Reader, 
 
 func archiveFromDisk(directory string, src, dst string, allowDownload bool, excludes []string, check DirectoryCheck) (io.Reader, io.Closer, error) {
 	var err error
-	if filepath.IsAbs(src) {
+	if src == string(os.PathSeparator) {
 		src, err = filepath.Rel(filepath.Dir(src), src)
 		if err != nil {
 			return nil, nil, err
 		}
 	}
+	// if filepath.IsAbs(src) {
+	// 	src, err = filepath.Rel(filepath.Dir(src), src)
+	// path, err := filepath.Abs(directory)
+	// if err != nil {
+	// 	log.Println("err abs", err)
+	// 	return nil, nil, err
+	// }
+	// src, err = filepath.Rel(path, src)
+	// 	if err != nil {
+	// 		return nil, nil, err
+	// 	}
+	// }
+
+	log.Println("src~~~~~~~~~~~", src, "dest~~~~~~~~~ ", dst)
 
 	infos, err := CalcCopyInfo(src, directory, true)
 	if err != nil {
@@ -414,11 +429,7 @@ func archiveOptionsFor(infos []CopyInfo, dst string, excludes []string, check Di
 		}
 		dstIsDir = isDir
 	}
-
-	if len(infos) > 1 && !dstIsDir {
-		return nil, fmt.Errorf("When using COPY with more than one source file, the destination must be an existing directory")
-	}
-
+	log.Println("is dir~~~~~~", dstIsDir, dst)
 	options := &archive.TarOptions{
 		ChownOpts: &idtools.IDPair{UID: 0, GID: 0},
 	}
@@ -444,17 +455,29 @@ func archiveOptionsFor(infos []CopyInfo, dst string, excludes []string, check Di
 			options.RebaseNames = make(map[string]string)
 		}
 
+		log.Println("from dir", info.FromDir, "path", infoPath, "len~~", len(infos))
 		klog.V(6).Infof("len=%d info.FromDir=%t info.IsDir=%t dstIsRoot=%t dstIsDir=%t srcIsDir=%t", len(infos), info.FromDir, info.IsDir(), dstIsRoot, dstIsDir, srcIsDir)
 		switch {
-		case info.FileInfo.IsDir():
-			// mapping a directory to a destination, explicit or not ([dir] -> [a])
-			options.RebaseNames[infoPath] = dst
+		// case len(infos) > 1 && dstIsDir:
+		// 	// put each input into the target, which is assumed to be a directory ([Dockerfile, dir] -> [a/Dockerfile, a/dir])
+		// 	options.RebaseNames[infoPath] = path.Join(dst, path.Base(infoPath))
+		// case info.FileInfo.IsDir():
+		// 	log.Println("xxxxxxxxxxxxxxxxxxxxxxxxxxxx1")
+		// 	// mapping a directory to a destination, explicit or not ([dir] -> [a])
+		// 	options.RebaseNames[infoPath] = dst
 		case info.FromDir:
+			log.Println("xxxxxxxxxxxxxxxxxxxxxxxxxxxx2")
+
 			// this is a file that was part of an explicit directory request, no transformation
 			options.RebaseNames[infoPath] = path.Join(dst, path.Base(infoPath))
-		case dstIsDir:
-			// mapping what is probably a file to a non-root directory ([Dockerfile] -> [dir/Dockerfile])
-			options.RebaseNames[infoPath] = path.Join(dst, path.Base(infoPath))
+		case info.FileInfo.IsDir():
+			log.Println("xxxxxxxxxxxxxxxxxxxxxxxxxxxx1")
+			// mapping a directory to a destination, explicit or not ([dir] -> [a])
+			options.RebaseNames[infoPath] = dst
+		// case dstIsDir:
+
+		// 	// mapping what is probably a file to a non-root directory ([Dockerfile] -> [dir/Dockerfile])
+		// 	options.RebaseNames[infoPath] = path.Join(dst, path.Base(infoPath))
 		default:
 			// a single file mapped to another single file ([Dockerfile] -> [Dockerfile.2])
 			options.RebaseNames[infoPath] = dst
